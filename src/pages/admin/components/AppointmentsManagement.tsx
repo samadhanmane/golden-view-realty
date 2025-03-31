@@ -40,7 +40,8 @@ import {
   CheckCircle,
   XCircle,
   Eye as EyeIcon, // Import renamed to EyeIcon to avoid confusion
-  FileText
+  FileText,
+  PlusCircle
 } from "lucide-react";
 
 // Mock appointment data
@@ -285,12 +286,12 @@ const AppointmentsManagement: React.FC = () => {
                     <Badge
                       variant={
                         appointment.status === 'Confirmed'
-                          ? 'success'
+                          ? 'default'
                           : appointment.status === 'Pending'
                           ? 'secondary'
                           : appointment.status === 'Cancelled'
                           ? 'destructive'
-                          : 'default'
+                          : 'outline'
                       }
                     >
                       {appointment.status}
