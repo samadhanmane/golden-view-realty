@@ -1,8 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PropertyCard from '@/components/PropertyCard';
+import PropertyGrid from '@/components/PropertyGrid';
+import PropertyAdvancedFilters, { FilterOptions } from '@/components/PropertyAdvancedFilters';
 import { mockProperties } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { 
@@ -21,40 +23,69 @@ const Properties: React.FC = () => {
   const [filteredProperties, setFilteredProperties] = useState(mockProperties);
   
   // Filter state
-  const [filters, setFilters] = useState({
-    type: '',
-    category: '',
-    priceRange: '',
-    location: '',
+  const [filters, setFilters] = useState<FilterOptions>({
+    type: [],
+    category: [],
+    priceRange: [0, 5000000],
+    location: [],
     bedrooms: '',
-    size: ''
+    size: '',
+    zoneType: [],
+    naStatus: null
   });
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFilters({
-      ...filters,
-      [name]: value
-    });
-  };
-
   const applyFilters = () => {
-    // This would normally filter based on the actual filters
-    // For demo purposes, we're just using the mockProperties
-    setFilteredProperties(mockProperties);
+    // Filter the properties based on the selected filters
+    let filtered = [...mockProperties];
+    
+    // Filter by type
+    if (filters.type.length > 0) {
+      filtered = filtered.filter(property => filters.type.includes(property.type.toLowerCase()));
+    }
+    
+    // Filter by category
+    if (filters.category.length > 0) {
+      filtered = filtered.filter(property => filters.category.includes(property.category.toLowerCase()));
+    }
+    
+    // Filter by price range
+    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 5000000) {
+      filtered = filtered.filter(property => 
+        property.price >= filters.priceRange[0] && property.price <= filters.priceRange[1]
+      );
+    }
+    
+    // Filter by location
+    if (filters.location.length > 0) {
+      filtered = filtered.filter(property => 
+        filters.location.some(loc => property.location.includes(loc))
+      );
+    }
+    
+    // In a real implementation, we would also filter by zoneType and naStatus
+    // For this demo, we'll just use the mock data
+    
+    setFilteredProperties(filtered);
   };
 
   const resetFilters = () => {
     setFilters({
-      type: '',
-      category: '',
-      priceRange: '',
-      location: '',
+      type: [],
+      category: [],
+      priceRange: [0, 5000000],
+      location: [],
       bedrooms: '',
-      size: ''
+      size: '',
+      zoneType: [],
+      naStatus: null
     });
     setFilteredProperties(mockProperties);
   };
+  
+  // Apply filters when filters change
+  useEffect(() => {
+    applyFilters();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -72,132 +103,21 @@ const Properties: React.FC = () => {
               <p className="text-xl mb-6 max-w-xl mx-auto">
                 Browse through our extensive catalog of premium properties
               </p>
-              <div className="flex justify-center">
-                <Button 
-                  className="bg-secondary hover:bg-secondary-hover"
-                  onClick={() => setShowFilters(prev => !prev)}
-                >
-                  <Filter className="mr-2 h-5 w-5" />
-                  {showFilters ? 'Hide Filters' : 'Show Filters'}
-                </Button>
-              </div>
             </div>
           </div>
         </div>
         
         {/* Filters Section */}
-        <div className={`bg-white shadow-md border-b ${showFilters ? 'py-8' : 'py-0 h-0 overflow-hidden'} transition-all duration-300`}>
+        <div className="py-8 bg-bgLight">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-textColor mb-2">Property Type</label>
-                <select 
-                  name="type"
-                  value={filters.type}
-                  onChange={handleFilterChange}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="">Any Type</option>
-                  <option value="house">House</option>
-                  <option value="apartment">Apartment</option>
-                  <option value="villa">Villa</option>
-                  <option value="condo">Condo</option>
-                  <option value="land">Land</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-textColor mb-2">Category</label>
-                <select 
-                  name="category"
-                  value={filters.category}
-                  onChange={handleFilterChange}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="">Any Category</option>
-                  <option value="residential">Residential</option>
-                  <option value="commercial">Commercial</option>
-                  <option value="industrial">Industrial</option>
-                  <option value="agricultural">Agricultural</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-textColor mb-2">Price Range</label>
-                <select 
-                  name="priceRange"
-                  value={filters.priceRange}
-                  onChange={handleFilterChange}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="">Any Price</option>
-                  <option value="0-100000">Under $100,000</option>
-                  <option value="100000-500000">$100,000 - $500,000</option>
-                  <option value="500000-1000000">$500,000 - $1,000,000</option>
-                  <option value="1000000-5000000">$1,000,000 - $5,000,000</option>
-                  <option value="5000000+">Over $5,000,000</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-textColor mb-2">Location</label>
-                <select 
-                  name="location"
-                  value={filters.location}
-                  onChange={handleFilterChange}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="">Any Location</option>
-                  <option value="new-york">New York</option>
-                  <option value="los-angeles">Los Angeles</option>
-                  <option value="chicago">Chicago</option>
-                  <option value="miami">Miami</option>
-                  <option value="san-francisco">San Francisco</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-textColor mb-2">Bedrooms</label>
-                <select 
-                  name="bedrooms"
-                  value={filters.bedrooms}
-                  onChange={handleFilterChange}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="">Any</option>
-                  <option value="1">1+</option>
-                  <option value="2">2+</option>
-                  <option value="3">3+</option>
-                  <option value="4">4+</option>
-                  <option value="5">5+</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-textColor mb-2">Size</label>
-                <select 
-                  name="size"
-                  value={filters.size}
-                  onChange={handleFilterChange}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary focus:ring-primary"
-                >
-                  <option value="">Any Size</option>
-                  <option value="0-1000">Under 1,000 sq ft</option>
-                  <option value="1000-2000">1,000 - 2,000 sq ft</option>
-                  <option value="2000-3000">2,000 - 3,000 sq ft</option>
-                  <option value="3000-5000">3,000 - 5,000 sq ft</option>
-                  <option value="5000+">Over 5,000 sq ft</option>
-                </select>
-              </div>
-            </div>
-            
-            <div className="flex justify-end mt-6 space-x-4">
-              <Button variant="outline" onClick={resetFilters}>Reset Filters</Button>
-              <Button className="bg-primary hover:bg-primary-hover" onClick={applyFilters}>
-                <Search className="mr-2 h-4 w-4" />
-                Apply Filters
-              </Button>
-            </div>
+            <PropertyAdvancedFilters 
+              filters={filters}
+              setFilters={setFilters}
+              applyFilters={applyFilters}
+              resetFilters={resetFilters}
+              showFilters={showFilters}
+              setShowFilters={setShowFilters}
+            />
           </div>
         </div>
         
@@ -217,11 +137,7 @@ const Properties: React.FC = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredProperties.map(property => (
-                <PropertyCard key={property.id} {...property} />
-              ))}
-            </div>
+            <PropertyGrid properties={filteredProperties} />
             
             {/* Pagination */}
             <div className="flex justify-center mt-12">
