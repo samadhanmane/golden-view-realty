@@ -6,10 +6,15 @@ import {
   MapPin, 
   Home, 
   ArrowRight,
-  Calendar
+  Calendar,
+  Bath,
+  Bed,
+  Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 export interface PropertyCardProps {
   id: number;
@@ -56,19 +61,28 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   });
 
   return (
-    <div className={`bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:-translate-y-1 ${featured ? 'ring-2 ring-secondary' : ''}`}>
+    <Card className={`overflow-hidden h-full transition-all duration-300 hover:shadow-lg ${featured ? 'ring-2 ring-secondary' : ''}`}>
       <div className="relative">
-        <img 
-          src={imageUrl} 
-          alt={title} 
-          className="w-full h-48 object-cover"
-        />
+        <AspectRatio ratio={16/9}>
+          <img 
+            src={imageUrl} 
+            alt={title} 
+            className="w-full h-full object-cover"
+          />
+        </AspectRatio>
         {featured && (
           <Badge className="absolute top-2 right-2 bg-secondary text-white">
             Featured
           </Badge>
         )}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+        <Button 
+          size="icon" 
+          variant="ghost" 
+          className="absolute top-2 left-2 bg-white/80 hover:bg-white text-gray-600 hover:text-primary rounded-full"
+        >
+          <Heart className="h-5 w-5" />
+        </Button>
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
           <h3 className="text-white font-bold text-xl truncate">{title}</h3>
           <div className="flex items-center text-white/90 text-sm">
             <MapPin className="h-4 w-4 mr-1" />
@@ -77,56 +91,55 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         </div>
       </div>
 
-      <div className="p-4">
+      <CardContent className="p-5">
         <div className="flex justify-between items-center mb-4">
           <div>
             <span className="text-primary font-bold text-xl">{formattedPrice}</span>
           </div>
-          <div className="flex space-x-2">
-            <Badge variant="outline" className="bg-bgLight text-textColor">
-              {category}
-            </Badge>
-          </div>
+          <Badge variant="outline" className="bg-bgLight text-textColor">
+            {category}
+          </Badge>
         </div>
 
         <div className="border-t border-gray-200 pt-4 mb-4">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center text-sm text-gray-500">
-              <Building className="h-4 w-4 mr-1 text-gray-400" />
+              <Building className="h-4 w-4 mr-1.5 text-primary" />
               <span>{type}</span>
             </div>
             <div className="flex items-center text-sm text-gray-500">
-              <Home className="h-4 w-4 mr-1 text-gray-400" />
+              <Home className="h-4 w-4 mr-1.5 text-primary" />
               <span>{size}</span>
             </div>
             {bedrooms !== undefined && (
               <div className="flex items-center text-sm text-gray-500">
-                <span className="mr-1">🛏️</span>
+                <Bed className="h-4 w-4 mr-1.5 text-primary" />
                 <span>{bedrooms} Bed{bedrooms !== 1 ? 's' : ''}</span>
               </div>
             )}
             {bathrooms !== undefined && (
               <div className="flex items-center text-sm text-gray-500">
-                <span className="mr-1">🚿</span>
+                <Bath className="h-4 w-4 mr-1.5 text-primary" />
                 <span>{bathrooms} Bath{bathrooms !== 1 ? 's' : ''}</span>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center text-xs text-gray-500 mt-2 mb-4">
+        <div className="flex items-center text-xs text-gray-500 mt-2">
           <Calendar className="h-3 w-3 mr-1" />
           <span>Listed on {formattedDate}</span>
         </div>
-
-        <Link to={`/properties/${id}`}>
+      </CardContent>
+      <CardFooter className="pt-0">
+        <Link to={`/properties/${id}`} className="w-full">
           <Button className="w-full bg-primary hover:bg-primary-hover">
             View Details
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Link>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
 
