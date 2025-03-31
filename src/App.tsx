@@ -12,6 +12,8 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import SuccessfulDeals from "./pages/SuccessfulDeals";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import Contact from "./pages/Contact";
+import Locations from "./pages/Locations";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/successful-deals" element={<SuccessfulDeals />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/locations" element={<Locations />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

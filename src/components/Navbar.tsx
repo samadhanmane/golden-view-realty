@@ -1,14 +1,32 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X, User, Search, Home, Building, MapPin, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, User, Search, Home, Building, MapPin, Phone, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { checkIsAdmin, getCurrentUser, logout } from '@/utils/authUtils';
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check login status
+    const user = getCurrentUser();
+    setIsLoggedIn(!!user);
+    setIsAdmin(checkIsAdmin());
+  }, []);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsLoggedIn(false);
+    setIsAdmin(false);
+    navigate('/');
   };
 
   return (
@@ -35,6 +53,10 @@ const Navbar: React.FC = () => {
               <MapPin className="mr-1 h-4 w-4" />
               <span>Locations</span>
             </Link>
+            <Link to="/successful-deals" className="text-textColor hover:text-primary flex items-center">
+              <Building className="mr-1 h-4 w-4" />
+              <span>Deals</span>
+            </Link>
             <Link to="/contact" className="text-textColor hover:text-primary flex items-center">
               <Phone className="mr-1 h-4 w-4" />
               <span>Contact</span>
@@ -45,12 +67,34 @@ const Navbar: React.FC = () => {
               <span>Search</span>
             </Button>
 
-            <Link to="/login">
-              <Button className="bg-primary text-white hover:bg-primary-hover flex items-center">
-                <User className="mr-1 h-4 w-4" />
-                <span>Sign In</span>
-              </Button>
-            </Link>
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-3">
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="outline" size="sm" className="flex items-center">
+                      <User className="mr-1 h-4 w-4" />
+                      <span>Admin</span>
+                    </Button>
+                  </Link>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-red-500 hover:text-red-600 flex items-center"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-1 h-4 w-4" />
+                  <span>Logout</span>
+                </Button>
+              </div>
+            ) : (
+              <Link to="/login">
+                <Button className="bg-primary text-white hover:bg-primary-hover flex items-center">
+                  <User className="mr-1 h-4 w-4" />
+                  <span>Sign In</span>
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Navigation Button */}
@@ -91,19 +135,50 @@ const Navbar: React.FC = () => {
               Locations
             </Link>
             <Link 
+              to="/successful-deals" 
+              className="block px-3 py-2 rounded-md text-base font-medium text-textColor hover:text-primary hover:bg-bgLight"
+              onClick={toggleMenu}
+            >
+              Successful Deals
+            </Link>
+            <Link 
               to="/contact" 
               className="block px-3 py-2 rounded-md text-base font-medium text-textColor hover:text-primary hover:bg-bgLight"
               onClick={toggleMenu}
             >
               Contact
             </Link>
-            <Link 
-              to="/login" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-white bg-primary hover:bg-primary-hover"
-              onClick={toggleMenu}
-            >
-              Sign In
-            </Link>
+            
+            {isLoggedIn ? (
+              <>
+                {isAdmin && (
+                  <Link 
+                    to="/admin" 
+                    className="block px-3 py-2 rounded-md text-base font-medium text-primary hover:bg-bgLight"
+                    onClick={toggleMenu}
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+                <button
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-bgLight"
+                  onClick={() => {
+                    handleLogout();
+                    toggleMenu();
+                  }}
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Link 
+                to="/login" 
+                className="block px-3 py-2 rounded-md text-base font-medium text-white bg-primary hover:bg-primary-hover"
+                onClick={toggleMenu}
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       )}

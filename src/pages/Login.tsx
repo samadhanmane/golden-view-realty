@@ -1,17 +1,77 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+
+// Simple admin credentials (in a real app this would be handled securely on the backend)
+const ADMIN_CREDENTIALS = {
+  email: 'admin@goldenview.com',
+  password: 'admin123'
+};
 
 const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    // Simple admin authentication (in a real app this would be much more secure)
+    if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+      // Set admin status in localStorage
+      localStorage.setItem('isAdmin', 'true');
+      localStorage.setItem('user', JSON.stringify({ email, role: 'admin' }));
+      
+      // Show success toast
+      toast({
+        title: "Login successful!",
+        description: "Welcome back, Admin.",
+      });
+      
+      // Redirect to admin dashboard
+      setTimeout(() => {
+        setLoading(false);
+        navigate('/admin');
+      }, 1000);
+    } else {
+      // For demo purposes, allow any user to login as regular user
+      localStorage.setItem('isAdmin', 'false');
+      localStorage.setItem('user', JSON.stringify({ email, role: 'user' }));
+      
+      toast({
+        title: "Login successful!",
+        description: "Welcome back!",
+      });
+      
+      // Redirect regular users to homepage
+      setTimeout(() => {
+        setLoading(false);
+        navigate('/');
+      }, 1000);
+    }
+  };
+
+  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    toast({
+      title: "Account created!",
+      description: "Thank you for signing up.",
+    });
+    setTimeout(() => navigate('/'), 1000);
   };
   
   return (
@@ -33,7 +93,7 @@ const Login: React.FC = () => {
                   <p className="text-gray-600">Log in to access your Golden View Realty account</p>
                 </div>
                 
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleLogin}>
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                     <div className="relative">
@@ -44,7 +104,10 @@ const Login: React.FC = () => {
                         type="email"
                         id="email"
                         placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                        required
                       />
                     </div>
                   </div>
@@ -64,7 +127,10 @@ const Login: React.FC = () => {
                         type={showPassword ? "text" : "password"}
                         id="password"
                         placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary pr-10"
+                        required
                       />
                       <button
                         type="button"
@@ -87,8 +153,12 @@ const Login: React.FC = () => {
                     </label>
                   </div>
                   
-                  <Button className="w-full bg-primary hover:bg-primary-hover">
-                    Log In
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary hover:bg-primary-hover"
+                    disabled={loading}
+                  >
+                    {loading ? 'Logging in...' : 'Log In'}
                   </Button>
                 </form>
                 
@@ -134,7 +204,7 @@ const Login: React.FC = () => {
                   <p className="text-gray-600">Join Golden View Realty to explore exclusive properties</p>
                 </div>
                 
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleSignup}>
                   <div>
                     <label htmlFor="fullname" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                     <div className="relative">
@@ -146,6 +216,7 @@ const Login: React.FC = () => {
                         id="fullname"
                         placeholder="Enter your full name"
                         className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                        required
                       />
                     </div>
                   </div>
@@ -161,6 +232,7 @@ const Login: React.FC = () => {
                         id="signup-email"
                         placeholder="Enter your email"
                         className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                        required
                       />
                     </div>
                   </div>
@@ -176,6 +248,7 @@ const Login: React.FC = () => {
                         id="signup-password"
                         placeholder="Create a password"
                         className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary pr-10"
+                        required
                       />
                       <button
                         type="button"
@@ -208,13 +281,14 @@ const Login: React.FC = () => {
                       type="checkbox"
                       id="terms"
                       className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                      required
                     />
                     <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
                       I agree to the <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Privacy Policy</a>
                     </label>
                   </div>
                   
-                  <Button className="w-full bg-primary hover:bg-primary-hover">
+                  <Button type="submit" className="w-full bg-primary hover:bg-primary-hover">
                     Create Account
                   </Button>
                 </form>
