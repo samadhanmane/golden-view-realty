@@ -1,196 +1,303 @@
-
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
 import { 
-  Search, 
-  MoreHorizontal, 
-  CheckCircle, 
-  XCircle, 
-  Calendar, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Calendar,
   Clock, 
-  User, 
-  Home, 
-  FileText,
-  Plus
-} from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockProperties } from '@/data/mockData';
+  Download, 
+  MoreHorizontal, 
+  Search,
+  Phone,
+  CheckCircle,
+  XCircle,
+  Eye as EyeIcon, // Import renamed to EyeIcon to avoid confusion
+  FileText
+} from "lucide-react";
 
-// Mock appointments data
-const generateRandomDate = () => {
-  const start = new Date();
-  const end = new Date();
-  end.setDate(end.getDate() + 30);
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).toISOString();
-};
-
-const generateAppointment = (id: number, status: 'pending' | 'confirmed' | 'completed' | 'cancelled') => {
-  const property = mockProperties[Math.floor(Math.random() * mockProperties.length)];
-  const users = ['John Smith', 'Emily Johnson', 'Michael Williams', 'Sophia Brown', 'Robert Davis', 'Emma Miller'];
-  
-  return {
-    id: `APT${id.toString().padStart(4, '0')}`,
-    propertyId: property.id,
-    propertyTitle: property.title,
-    propertyImage: property.imageUrl,
-    date: generateRandomDate(),
-    timeSlot: ['9:00 AM - 10:00 AM', '11:00 AM - 12:00 PM', '2:00 PM - 3:00 PM', '4:00 PM - 5:00 PM'][
-      Math.floor(Math.random() * 4)
-    ],
-    clientName: users[Math.floor(Math.random() * users.length)],
-    clientEmail: `client${id}@example.com`,
-    clientPhone: `+1 (555) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`,
-    ownerName: 'Golden View Realty',
-    status: status,
-    agentNotes: status === 'completed' ? 'Client was very interested. Requested additional information about financing options.' : '',
-    ownerNotes: status === 'completed' ? 'Property requires minor repairs before finalizing sale. Owner willing to negotiate on price.' : '',
-  };
-};
-
+// Mock appointment data
 const mockAppointments = [
-  ...Array(8).fill(null).map((_, i) => generateAppointment(i + 1, 'pending')),
-  ...Array(6).fill(null).map((_, i) => generateAppointment(i + 9, 'confirmed')),
-  ...Array(5).fill(null).map((_, i) => generateAppointment(i + 15, 'completed')),
-  ...Array(3).fill(null).map((_, i) => generateAppointment(i + 20, 'cancelled')),
+  {
+    id: 1,
+    property: 'Luxury Villa in Beverly Hills',
+    client: 'John Smith',
+    dateTime: '2023-08-15T14:00:00',
+    status: 'Confirmed',
+    type: 'Viewing',
+    notes: 'Client interested in pool and garden',
+  },
+  {
+    id: 2,
+    property: 'Modern Apartment in Downtown LA',
+    client: 'Emily Johnson',
+    dateTime: '2023-08-16T11:30:00',
+    status: 'Pending',
+    type: 'Inspection',
+    notes: 'Check for water leaks',
+  },
+  {
+    id: 3,
+    property: 'Beachfront House in Malibu',
+    client: 'Michael Brown',
+    dateTime: '2023-08-17T16:00:00',
+    status: 'Completed',
+    type: 'Signing',
+    notes: 'Documents signed and approved',
+  },
+  {
+    id: 4,
+    property: 'Cozy Cottage in Santa Monica',
+    client: 'Sarah Lee',
+    dateTime: '2023-08-18T09:00:00',
+    status: 'Cancelled',
+    type: 'Viewing',
+    notes: 'Client cancelled due to travel issues',
+  },
+  {
+    id: 5,
+    property: 'Spacious Loft in Arts District',
+    client: 'David Kim',
+    dateTime: '2023-08-19T13:00:00',
+    status: 'Confirmed',
+    type: 'Inspection',
+    notes: 'Check for structural integrity',
+  },
 ];
 
 const AppointmentsManagement: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
-  
-  const filteredAppointments = mockAppointments.filter(appointment => {
-    const matchesSearch = 
-      appointment.propertyTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.id.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    if (activeTab === 'all') return matchesSearch;
-    return appointment.status === activeTab && matchesSearch;
-  });
-  
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
+  const [appointments, setAppointments] = useState(mockAppointments);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const appointmentsPerPage = 5;
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
-  
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'pending':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">Pending</Badge>;
-      case 'confirmed':
-        return <Badge className="bg-blue-600">Confirmed</Badge>;
-      case 'completed':
-        return <Badge className="bg-green-600">Completed</Badge>;
-      case 'cancelled':
-        return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Cancelled</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
+
+  const handleStatusFilterChange = (value: string) => {
+    setFilterStatus(value);
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+  };
+
+  const filteredAppointments = appointments.filter(appointment => {
+    const searchMatch =
+      appointment.property.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      appointment.client.toLowerCase().includes(searchQuery.toLowerCase());
+    const statusMatch = filterStatus ? appointment.status === filterStatus : true;
+    return searchMatch && statusMatch;
+  });
+
+  const sortedAppointments = [...filteredAppointments].sort((a, b) => {
+    if (sortBy === 'date') {
+      return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
     }
+    return 0;
+  });
+
+  const totalPages = Math.ceil(sortedAppointments.length / appointmentsPerPage);
+  const paginatedAppointments = sortedAppointments.slice(
+    (currentPage - 1) * appointmentsPerPage,
+    currentPage * appointmentsPerPage
+  );
+
+  const goToPreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
+
+  const dashboardStats = {
+    totalAppointments: appointments.length,
+    confirmedAppointments: appointments.filter(a => a.status === 'Confirmed').length,
+    pendingAppointments: appointments.filter(a => a.status === 'Pending').length,
+    cancelledAppointments: appointments.filter(a => a.status === 'Cancelled').length,
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <div className="relative w-96">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            className="pl-10"
-            placeholder="Search appointments..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Schedule New Appointment
-        </Button>
+    <div className="space-y-6">
+      {/* Header with stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Appointments</p>
+                <h3 className="text-3xl font-bold">{dashboardStats.totalAppointments}</h3>
+              </div>
+              <div className="p-3 bg-gray-100 rounded-md">
+                <Calendar className="h-6 w-6 text-gray-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Confirmed Appointments</p>
+                <h3 className="text-3xl font-bold">{dashboardStats.confirmedAppointments}</h3>
+              </div>
+              <div className="p-3 bg-green-100 rounded-md">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Pending Appointments</p>
+                <h3 className="text-3xl font-bold">{dashboardStats.pendingAppointments}</h3>
+              </div>
+              <div className="p-3 bg-amber-100 rounded-md">
+                <Clock className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Cancelled Appointments</p>
+                <h3 className="text-3xl font-bold">{dashboardStats.cancelledAppointments}</h3>
+              </div>
+              <div className="p-3 bg-red-100 rounded-md">
+                <XCircle className="h-6 w-6 text-red-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">
-            All Appointments ({mockAppointments.length})
-          </TabsTrigger>
-          <TabsTrigger value="pending">
-            Pending ({mockAppointments.filter(a => a.status === 'pending').length})
-          </TabsTrigger>
-          <TabsTrigger value="confirmed">
-            Confirmed ({mockAppointments.filter(a => a.status === 'confirmed').length})
-          </TabsTrigger>
-          <TabsTrigger value="completed">
-            Completed ({mockAppointments.filter(a => a.status === 'completed').length})
-          </TabsTrigger>
-          <TabsTrigger value="cancelled">
-            Cancelled ({mockAppointments.filter(a => a.status === 'cancelled').length})
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Filters and Actions */}
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              className="pl-9 w-full md:w-60"
+              placeholder="Search appointments..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <Select onValueChange={handleStatusFilterChange}>
+            <SelectTrigger className="w-full md:w-40">
+              <SelectValue placeholder="Filter by status" defaultValue={filterStatus} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All</SelectItem>
+              <SelectItem value="Confirmed">Confirmed</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-2">
+          {/* Export Button */}
+          <Button variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+
+          {/* Create Button */}
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Appointment
+          </Button>
+        </div>
+      </div>
       
-      <Card className="shadow-sm">
-        <CardHeader className="py-4">
-          <CardTitle className="text-lg font-medium">
-            {activeTab === 'all' ? 'All Appointments' : 
-              activeTab === 'pending' ? 'Pending Appointments' :
-              activeTab === 'confirmed' ? 'Confirmed Appointments' :
-              activeTab === 'completed' ? 'Completed Appointments' : 'Cancelled Appointments'}
-          </CardTitle>
+      {/* Appointments Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Appointments</CardTitle>
+          <CardDescription>Manage and track all property appointments</CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Appointment ID</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Property</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
+                <TableHead>Date & Time</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Notes</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAppointments.map((appointment) => (
+              {paginatedAppointments.map(appointment => (
                 <TableRow key={appointment.id}>
-                  <TableCell className="font-medium">{appointment.id}</TableCell>
+                  <TableCell>{appointment.id}</TableCell>
+                  <TableCell>{appointment.property}</TableCell>
+                  <TableCell>{appointment.client}</TableCell>
                   <TableCell>
-                    <div className="flex items-center">
-                      <img
-                        src={appointment.propertyImage}
-                        alt={appointment.propertyTitle}
-                        className="w-10 h-10 rounded object-cover mr-3"
-                      />
-                      <span className="font-medium">{appointment.propertyTitle}</span>
-                    </div>
+                    {new Date(appointment.dateTime).toLocaleString()}
                   </TableCell>
-                  <TableCell>{appointment.clientName}</TableCell>
-                  <TableCell>{formatDate(appointment.date)}</TableCell>
-                  <TableCell>{appointment.timeSlot}</TableCell>
                   <TableCell>
-                    {getStatusBadge(appointment.status)}
+                    <Badge
+                      variant={
+                        appointment.status === 'Confirmed'
+                          ? 'success'
+                          : appointment.status === 'Pending'
+                          ? 'secondary'
+                          : appointment.status === 'Cancelled'
+                          ? 'destructive'
+                          : 'default'
+                      }
+                    >
+                      {appointment.status}
+                    </Badge>
                   </TableCell>
+                  <TableCell>{appointment.type}</TableCell>
+                  <TableCell>{appointment.notes}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -199,48 +306,18 @@ const AppointmentsManagement: React.FC = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem>
-                          <Eye className="mr-2 h-4 w-4" />
+                          <EyeIcon className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        {appointment.status === 'pending' && (
-                          <>
-                            <DropdownMenuItem>
-                              <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                              Confirm Appointment
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <XCircle className="mr-2 h-4 w-4 text-red-600" />
-                              Reject Appointment
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        {appointment.status === 'confirmed' && (
-                          <>
-                            <DropdownMenuItem>
-                              <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                              Mark as Completed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Calendar className="mr-2 h-4 w-4" />
-                              Reschedule
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        {appointment.status === 'completed' && (
-                          <DropdownMenuItem>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Add Notes
-                          </DropdownMenuItem>
-                        )}
-                        {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
-                          <DropdownMenuItem className="text-red-600">
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Cancel Appointment
-                          </DropdownMenuItem>
-                        )}
+                        <DropdownMenuItem>
+                          <Phone className="mr-2 h-4 w-4" />
+                          Contact Client
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <FileText className="mr-2 h-4 w-4" />
+                          View Documents
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -248,8 +325,30 @@ const AppointmentsManagement: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+          {/* Pagination Controls */}
+          <div className="flex justify-between items-center mt-4">
+            <Button
+              variant="outline"
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
         </CardContent>
       </Card>
+      
+      {/* Appointment details modal (omitted for brevity) */}
     </div>
   );
 };
