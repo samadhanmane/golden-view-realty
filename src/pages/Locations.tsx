@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -70,6 +69,24 @@ const locations: Location[] = [
     image: "https://images.unsplash.com/photo-1416331108676-a22ccb276e35?auto=format&fit=crop&q=80&w=1000",
     propertiesCount: 22,
     description: "Eco-friendly community with sustainable homes and extensive natural preserves."
+  },
+  {
+    id: 7,
+    name: "Pune Tech Hub",
+    city: "Pune",
+    state: "Maharashtra",
+    image: "https://images.unsplash.com/photo-1487958449943-2429e8be8625",
+    propertiesCount: 29,
+    description: "Modern tech district with premium residential complexes and IT parks in a culturally rich setting."
+  },
+  {
+    id: 8,
+    name: "Hyderabad Cyber City",
+    city: "Hyderabad",
+    state: "Telangana",
+    image: "https://images.unsplash.com/photo-1466442929976-97f336a657be",
+    propertiesCount: 34,
+    description: "Rising tech metropolis with luxury apartments and commercial spaces near HITEC City."
   }
 ];
 
