@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -17,7 +16,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 export interface PropertyCardProps {
-  id: number;
+  id: string | number;
   title: string;
   location: string;
   price: number;
@@ -30,6 +29,12 @@ export interface PropertyCardProps {
   imageUrl: string;
   tags?: string[];
   createdAt: string;
+  description?: string;
+  amenities?: string[];
+  nearbyPlaces?: string[];
+  yearBuilt?: number | null;
+  contactPhone?: string;
+  contactEmail?: string;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({
@@ -65,9 +70,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       <div className="relative">
         <AspectRatio ratio={16/9}>
           <img 
-            src={imageUrl} 
+            src={imageUrl || 'https://placehold.co/600x400?text=No+Image'} 
             alt={title} 
             className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error('PropertyCard: Image failed to load:', imageUrl);
+              (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Image+Not+Available';
+            }}
           />
         </AspectRatio>
         {featured && (
@@ -132,7 +141,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         </div>
       </CardContent>
       <CardFooter className="pt-0">
-        <Link to={`/properties/${id}`} className="w-full">
+        <Link to={`/property/${id}`} className="w-full">
           <Button className="w-full bg-primary hover:bg-primary-hover">
             View Details
             <ArrowRight className="ml-2 h-4 w-4" />

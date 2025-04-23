@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { mockProperties } from '@/data/mockData';
+import { useToast } from '@/hooks/use-toast';
 import PropertyCard from '@/components/PropertyCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,49 +18,192 @@ import {
   Info,
   CheckSquare
 } from 'lucide-react';
+import api from '@/utils/api';
 
 const PropertyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Find the property based on ID
-  const property = mockProperties.find(p => p.id === Number(id));
-  
-  if (!property) {
+  const [property, setProperty] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const { toast } = useToast();
+  const [similarProperties, setSimilarProperties] = useState<any[]>([]);
+
+  // New state for appointment scheduling (simplified)
+  const [appointmentDate, setAppointmentDate] = useState('');
+  const [appointmentTime, setAppointmentTime] = useState('');
+  const [scheduling, setScheduling] = useState(false);
+
+  useEffect(() => {
+    const fetchProperty = async () => {
+      if (!id) {
+        setError(true);
+        setLoading(false);
+        toast({
+          title: "Error",
+          description: "Property ID is missing",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if we're in development mode - output debug info
+      if (import.meta.env.DEV) {
+        console.log(`Fetching property details for ID: ${id}`);
+      }
+
+      try {
+        // Fetch property data from API
+        const response = await api.get(`/properties/${id}`);
+        const propertyData = response.data;
+        
+        // Debug property images
+        console.log('Property images data:', propertyData.images);
+        console.log('Property image URL:', propertyData.imageUrl);
+
+        // Ensure we have at least one valid image URL
+        let imageUrls: string[] = [];
+        
+        // Process images array if it exists
+        if (Array.isArray(propertyData.images) && propertyData.images.length > 0) {
+          imageUrls = propertyData.images.map(img => 
+            typeof img === 'string' ? img : (img.url || '')
+          ).filter(Boolean); // Remove any empty URLs
+          console.log('Processed image URLs from images array:', imageUrls);
+        }
+        
+        // Fallback to imageUrl if images array is empty
+        if (imageUrls.length === 0 && propertyData.imageUrl) {
+          imageUrls = [propertyData.imageUrl];
+          console.log('Using fallback imageUrl:', propertyData.imageUrl);
+        }
+        
+        // Add default placeholder if we still have no images
+        if (imageUrls.length === 0) {
+          imageUrls = ['https://placehold.co/600x400?text=No+Image'];
+          console.log('No images found, using placeholder');
+        }
+
+        // Format the property data for display
+        const formattedProperty = {
+          id: propertyData._id,
+          title: propertyData.title,
+          location: propertyData.location?.address || propertyData.location,
+          price: propertyData.price,
+          category: propertyData.category,
+          type: propertyData.type || propertyData.propertyType,
+          size: propertyData.size?.area ? `${propertyData.size.area} ${propertyData.size.areaUnit || 'sq ft'}` : propertyData.size,
+          bedrooms: propertyData.bedrooms || propertyData.propertyDetails?.bedrooms || 0,
+          bathrooms: propertyData.bathrooms || propertyData.propertyDetails?.bathrooms || 0,
+          featured: propertyData.featured,
+          imageUrl: imageUrls[0], // Use the first valid image URL
+          images: imageUrls, // Use our validated array of image URLs
+          tags: propertyData.tags || [],
+          createdAt: propertyData.createdAt,
+          description: propertyData.description,
+          amenities: propertyData.amenities || [],
+          nearbyPlaces: propertyData.nearbyPlaces || [],
+          yearBuilt: propertyData.yearBuilt,
+          contactPhone: propertyData.contactPhone || propertyData.ownerDetails?.phoneNumbers?.[0],
+          contactEmail: propertyData.contactEmail || propertyData.ownerDetails?.email
+        };
+
+        console.log('Formatted property with images:', formattedProperty.images);
+        
+        if (formattedProperty.images.length === 0) {
+          console.error('No valid images found after formatting!');
+        }
+        
+        setProperty(formattedProperty);
+
+        // Fetch similar properties
+        if (propertyData.category && propertyData._id) {
+          fetchSimilarProperties(propertyData.category, propertyData._id);
+        }
+      } catch (error) {
+        console.error('Error fetching property:', error);
+        setError(true);
+        toast({
+          title: "Error",
+          description: "Failed to fetch property details",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchSimilarProperties = async (category, propertyId) => {
+      try {
+        // Fetch similar properties based on category
+        const response = await api.get(`/properties/public?category=${category}`);
+
+        // Filter out the current property and limit to 3
+        const filtered = response.data
+          .filter(p => p._id !== propertyId)
+          .slice(0, 3)
+          .map(property => ({
+            id: property._id,
+            title: property.title,
+            location: property.location?.address || property.location,
+            price: property.price,
+            category: property.category,
+            type: property.type,
+            size: property.size?.area ? `${property.size.area} ${property.size.areaUnit || 'sq ft'}` : property.size,
+            bedrooms: property.bedrooms,
+            bathrooms: property.bathrooms,
+            featured: property.featured,
+            imageUrl: property.images?.[0]?.url || property.imageUrl
+          }));
+
+        setSimilarProperties(filtered);
+      } catch (error) {
+        console.error('Error fetching similar properties:', error);
+        setSimilarProperties([]);
+      }
+    };
+
+    if (id) {
+      fetchProperty();
+    } else {
+      setError(true);
+      setLoading(false);
+    }
+  }, [id, toast]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error || !property) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navbar />
         <main className="flex-grow flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-4">Property Not Found</h1>
             <p className="text-gray-600 mb-6">The property you are looking for doesn't exist or has been removed.</p>
-            <Button asChild>
-              <a href="/properties">View All Properties</a>
+            <Button onClick={() => window.location.href = '/properties'}>
+              View All Properties
             </Button>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
   
-  // Mock multiple images for the property
-  const propertyImages = [
-    property.imageUrl,
-    "https://images.unsplash.com/photo-1560185007-5f0bb1866cab?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-    "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-    "https://images.unsplash.com/photo-1560185008-b033106af5c3?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
-  ];
-  
   const nextImage = () => {
     setCurrentImageIndex((prevIndex) => 
-      prevIndex === propertyImages.length - 1 ? 0 : prevIndex + 1
+      prevIndex === property.images.length - 1 ? 0 : prevIndex + 1
     );
   };
   
   const prevImage = () => {
     setCurrentImageIndex((prevIndex) => 
-      prevIndex === 0 ? propertyImages.length - 1 : prevIndex - 1
+      prevIndex === 0 ? property.images.length - 1 : prevIndex - 1
     );
   };
   
@@ -77,58 +218,162 @@ const PropertyDetail: React.FC = () => {
     maximumFractionDigits: 0,
   }).format(property.price);
   
+  // Simple appointment booking function with debugging
+  const handleScheduleAppointment = async () => {
+    // Validate form inputs
+    if (!appointmentDate || !appointmentTime) {
+      toast({
+        title: "Error",
+        description: "Please select date and time",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if user is authenticated before proceeding
+    const authData = localStorage.getItem('golden_view_auth');
+    if (!authData) {
+      toast({
+        title: "Login Required",
+        description: "Please login to book an appointment",
+        variant: "destructive",
+      });
+      // Redirect to login page with return URL
+      window.location.href = `/login?redirect=/properties/${id}`;
+      return;
+    }
+    
+    // Show loading state
+    setScheduling(true);
+    
+    try {
+      // Convert time selection to specific time value
+      let timeValue = "12:00";
+      if (appointmentTime.includes("Morning")) {
+        timeValue = "10:00";
+      } else if (appointmentTime.includes("Afternoon")) {
+        timeValue = "14:00";
+      } else if (appointmentTime.includes("Evening")) {
+        timeValue = "18:00";
+      }
+      
+      // Simplified appointment object with just the essential fields
+      const appointmentData = {
+        property: id,
+        appointmentDate: `${appointmentDate}T${timeValue}:00`,
+        notes: `Viewing request for ${property.title}`
+      };
+      
+      // Debug logging
+      console.log('Trying to book appointment with data:', appointmentData);
+      
+      // Make the API call with the correct endpoint (no /api/ prefix)
+      const response = await api.post('/appointments', appointmentData);
+      console.log('Appointment booking success:', response.data);
+      
+      toast({
+        title: "Success",
+        description: "Viewing appointment booked",
+        variant: "default",
+      });
+      
+      // Reset form fields
+      setAppointmentDate('');
+      setAppointmentTime('');
+    } catch (error) {
+      console.error('Booking error:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      
+      toast({
+        title: "Error", 
+        description: "Could not book appointment. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setScheduling(false);
+    }
+  };
+  
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
       <main className="flex-grow">
         {/* Property Image Gallery */}
         <section className="bg-black relative">
           <div className="relative h-[60vh] overflow-hidden">
-            <img 
-              src={propertyImages[currentImageIndex]} 
-              alt={property.title} 
-              className="w-full h-full object-cover"
-            />
+            {property.images && property.images.length > 0 ? (
+              <img 
+                src={property.images[currentImageIndex]} 
+                alt={property.title} 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error('Image failed to load:', property.images[currentImageIndex]);
+                  // Try a different image if available
+                  if (property.images.length > 1 && currentImageIndex < property.images.length - 1) {
+                    setCurrentImageIndex(prevIndex => prevIndex + 1);
+                  } else {
+                    // If no other images, use placeholder
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Image+Not+Available';
+                  }
+                }}
+              />
+            ) : (
+              // Fallback if no images array or empty array
+              <img 
+                src="https://placehold.co/600x400?text=No+Image" 
+                alt="No image available" 
+                className="w-full h-full object-cover"
+              />
+            )}
             
-            {/* Image Navigation Buttons */}
-            <button 
-              onClick={prevImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            
-            <button 
-              onClick={nextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
-              aria-label="Next image"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-            
-            {/* Image Counter */}
-            <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
-              {currentImageIndex + 1} / {propertyImages.length}
-            </div>
+            {/* Image Navigation Buttons - Only show if multiple images */}
+            {property.images && property.images.length > 1 && (
+              <>
+                <button 
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                
+                <button 
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+                
+                {/* Image Counter */}
+                <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                  {currentImageIndex + 1} / {property.images.length}
+                </div>
+              </>
+            )}
           </div>
           
-          {/* Thumbnail Navigation */}
-          <div className="container mx-auto px-4 py-4 flex space-x-2 overflow-x-auto">
-            {propertyImages.map((image, index) => (
-              <button 
-                key={index} 
-                onClick={() => selectImage(index)}
-                className={`w-20 h-20 flex-shrink-0 ${currentImageIndex === index ? 'border-2 border-secondary' : 'opacity-70'}`}
-              >
-                <img 
-                  src={image} 
-                  alt={`Thumbnail ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
-          </div>
+          {/* Thumbnail Navigation - Only show if multiple images */}
+          {property.images && property.images.length > 1 && (
+            <div className="container mx-auto px-4 py-4 flex space-x-2 overflow-x-auto">
+              {property.images.map((image, index) => (
+                <button 
+                  key={index} 
+                  onClick={() => selectImage(index)}
+                  className={`w-20 h-20 flex-shrink-0 ${currentImageIndex === index ? 'border-2 border-secondary' : 'opacity-70'}`}
+                >
+                  <img 
+                    src={image} 
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // If thumbnail fails to load, replace with placeholder
+                      (e.target as HTMLImageElement).src = 'https://placehold.co/150x150?text=No+Image';
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </section>
         
         {/* Property Information */}
@@ -244,7 +489,7 @@ const PropertyDetail: React.FC = () => {
                     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-8">
                       <h3 className="text-lg font-bold mb-4">Description</h3>
                       <p className="text-gray-700 mb-4">
-                        Welcome to this exceptional {property.category.toLowerCase()} property located in the heart of {property.location}. This stunning {property.type.toLowerCase()} offers an impressive {property.size} of living space designed for modern convenience and elegant living.
+                        Welcome to this exceptional {property.category ? property.category.toLowerCase() : ''} property located in the heart of {property.location}. This stunning {property.type ? property.type.toLowerCase() : ''} offers an impressive {property.size} of living space designed for modern convenience and elegant living.
                       </p>
                       <p className="text-gray-700 mb-4">
                         The property features premium finishes throughout, including hardwood floors, high ceilings, and expansive windows that flood the interior with natural light. The open layout creates a perfect flow for entertaining while maintaining intimate spaces for day-to-day living.
@@ -529,19 +774,31 @@ const PropertyDetail: React.FC = () => {
                           <input 
                             type="date" 
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                            value={appointmentDate}
+                            onChange={(e) => setAppointmentDate(e.target.value)}
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Time</label>
-                          <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary">
-                            <option>Morning (9AM - 12PM)</option>
-                            <option>Afternoon (12PM - 4PM)</option>
-                            <option>Evening (4PM - 7PM)</option>
+                          <select
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                            value={appointmentTime}
+                            onChange={(e) => setAppointmentTime(e.target.value)}
+                          >
+                            <option value="">Select a time</option>
+                            <option value="Morning (9AM - 12PM)">Morning (9AM - 12PM)</option>
+                            <option value="Afternoon (12PM - 4PM)">Afternoon (12PM - 4PM)</option>
+                            <option value="Evening (4PM - 7PM)">Evening (4PM - 7PM)</option>
                           </select>
                         </div>
-                        <Button variant="outline" className="w-full">
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={handleScheduleAppointment}
+                          disabled={scheduling || !appointmentDate || !appointmentTime}
+                        >
                           <Calendar className="mr-2 h-4 w-4" />
-                          Schedule Appointment
+                          {scheduling ? 'Scheduling...' : 'Schedule Appointment'}
                         </Button>
                       </div>
                     </div>
@@ -568,19 +825,19 @@ const PropertyDetail: React.FC = () => {
         </section>
         
         {/* Similar Properties */}
-        <section className="py-16 bg-bgLight">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Similar Properties You May Like</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {mockProperties.slice(0, 3).map(p => (
-                <PropertyCard key={p.id} {...p} />
-              ))}
+        {similarProperties.length > 0 && (
+          <section className="py-16 bg-bgLight">
+            <div className="container mx-auto px-4">
+              <h2 className="text-2xl md:text-3xl font-bold mb-8">Similar Properties</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {similarProperties.map(p => (
+                  <PropertyCard key={p.id} {...p} />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
-      <Footer />
     </div>
   );
 };
